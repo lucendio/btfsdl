@@ -1,0 +1,9 @@
+PORT_MIN=16384
+PORT_MAX=65535
+PORT_BTFS=6881
+
+# KBytes per second
+# SRC: http://www.libtorrent.org/manual-ref.html
+UPLOAD_MAX_RATE=0
+DOWNLOAD_MAX_RATE=
+

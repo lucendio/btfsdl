@@ -1,0 +1,7 @@
+.idea
+.vagrant
+./vm/*.log
+conf/IPredator.auth
+
+./share/*
+!./share/magnets
