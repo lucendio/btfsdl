@@ -1,0 +1,28 @@
+description "daemon for watching the btfsdl shared folder"
+author "<dev@lucendio.com>"
+
+
+start on net-device-removed INTERFACE=tun0
+stop on net-device-removed INTERFACE=tun0
+
+
+# Automatically restart process if crashed
+respawn
+respawn limit 10 5
+
+
+env DAEMON_NAME=btfsdl-watcher
+env DAEMON=/usr/local/btfsdl/lib/btfsdl.sh
+env DAEMON_USER=vagrant
+
+
+script
+    DAEMON_LOGS=/var/log/${DAEMON_NAME}.log
+    PIDFILE=/var/run/${DAEMON_NAME}.pid
+    start-stop-daemon --start --make-pidfile --pidfile ${PIDFILE} --chuid ${DAEMON_USER} --exec ${DAEMON} >> ${DAEMON_LOGS} 2>&1
+end script
+
+
+post-stop script
+    rm -f /var/run/${DAEMON_NAME}.pid
+end script

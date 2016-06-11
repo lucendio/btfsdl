@@ -16,7 +16,7 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
 
-cd /home/vagrant/
+cd /home/vagrant
 CWD=$(pwd)
 echo "" >> ./.profile
 echo "export LC_ALL=en_US.UTF-8" >> ./.profile
@@ -60,7 +60,9 @@ SYSCTL_CONF_PATH_FILE=/etc/sysctl.conf
 ULOGD_CONF_PATH_FILE=/etc/ulogd.conf
 DNSCRYPT_CONF_PATH_FILE=/etc/default/dnscrypt-proxy
 DHCPCLIENT_CONF_PATH_FILE=/etc/dhcp/dhclient.conf
-BTFSDK_ROOT=${CWD}/btfsdl
+BTFSDK_ROOT=${1:-/home/vagrant/btfsdl}
+
+USERNAME=${2:-root}
 
 
 
@@ -97,6 +99,9 @@ apt-get -y --force-yes install dnscrypt-proxy
 ####################################################################
 ### CONFIGURE ENVIRONMENT
 ####################################################################
+mkdir -p ${BTFSDK_ROOT}
+chown ${USERNAME}:${USERNAME} ${BTFSDK_ROOT}
+
 
 ### OPENVPN ###
 curl -o ${IPREDATOR_OPENVPN_CONFIG_FILE} ${IPREDATOR_OPENVPN_CONFIG_URL}
@@ -132,7 +137,7 @@ curl -o ${IPREDATOR_FIREWALL_FERM_CONFIG_FILE} ${IPREDATOR_FIREWALL_FERM_CONFIG_
 sed -e '/^\@def $PORT_WEB/a \
 \
 #Ports btfs is allowed to use.\
-\@def $PORT_BTFS = '"(${PORT_MIN}:${PORT_MAX}) ${PORT_BTFS}"';' -i ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
+\@def $PORT_BTFS = '"(${PORT_MIN}:${PORT_MAX} ${PORT_BTFS})"';' -i ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
 
 sed -e '0,/chain OUTPUT {/s/chain OUTPUT {/chain INPUT {\
                interface $DEV_VPN {\
@@ -202,8 +207,17 @@ echo "" >> ${DHCPCLIENT_CONF_PATH_FILE}
 #nm-tool
 
 
+
+
+id -u ${USERNAME} &>/dev/null || adduser ${USERNAME} --shell /bin/bash --disabled-password --disabled-login --gecos ""
+
+cp ${BTFSDK_ROOT}/lib/btfsdl-watcher.upstart /etc/init/btfsdl-watcher.conf
+
+
+
+
 ####################################################################
 ### POST PROCESS
 ####################################################################
 
-sudo reboot && exit 0;
+sudo poweroff && exit 0;

@@ -4,4 +4,4 @@
 conf/IPredator.auth
 
 ./share/*
-!./share/magnets
+!./share/magnet-links

@@ -13,6 +13,8 @@ VAGRANTFILE_API_VERSION = "2"
 VAGRANT_PROJECT_ID = "lio-vm-btfsdl-01"
 DOMAINNAME = "lio-vm-btfsdl-01.local"
 ENV_PROVISION = "./provision.sh"
+INSTALL_PATH = "/usr/local/btfsdl"
+USERNAME = "vagrant"
 
 if(ENV['VAGRANT_ENV_VARS'])
     ENV_VARS = ENV['VAGRANT_ENV_VARS'].split(' ')
@@ -35,10 +37,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.post_up_message = "Welcome to the btfs bulk downloader vm!"
 
     # NOTE: source - http://docs.vagrantup.com/v2/vagrantfile/ssh_settings.html
-    #config.ssh.username = "vagrant"
+    config.ssh.username = "vagrant"
     #config.ssh.password = "vagrant"
-    #config.ssh.forward_agent = true
-    config.ssh.insert_key = false               # --> true: disables key auth with vagrants own insecure key 
+    config.ssh.forward_agent = false
+    config.ssh.insert_key = false               # --> true: disables key auth with vagrants own insecure key
 
     # provider configs
     config.vm.provider "virtualbox" do |v|
@@ -49,14 +51,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
     config.vm.synced_folder ".", "/vagrant", disabled: true
-    config.vm.synced_folder "./../conf", "/home/vagrant/btfsdl/conf"
-    config.vm.synced_folder "./../share", "/home/vagrant/btfsdl/share"
-    config.vm.synced_folder "./../lib", "/home/vagrant/btfsdl/lib"
+    config.vm.synced_folder "./../conf", INSTALL_PATH + "/conf", owner: USERNAME, group: USERNAME, mount_options: ["ro"]
+    config.vm.synced_folder "./../share", INSTALL_PATH + "/share", owner: USERNAME, group: USERNAME, mount_options: ["rw"]
+    config.vm.synced_folder "./../lib", INSTALL_PATH + "/lib", owner: USERNAME, group: USERNAME, mount_options: ["ro", "exec"]
 
     config.vm.provision "shell" do |s|
         s.privileged = true
         s.path = ENV_PROVISION
-        s.args = [VAGRANT_PROJECT_ID].concat(ENV_VARS)
+        s.args = [ INSTALL_PATH, USERNAME ].concat( ENV_VARS )
     end
 
 

@@ -3,32 +3,77 @@ btfs dl vm
 
 
 ### Why?
-+   originally the intension was to have a very simple, convenient and sort of containerized thing, that downloads arbitrary torrent content in a fully automated way. One could say, it is a *headless bulk downloader for torrents*. And it was intended to make my first steps in the golang world
+
++   originally the intention was to have a very simple, convenient and sort of containerized thing, 
+    that downloads arbitrary torrent content in a fully automated way. One could say, it is a 
+    *headless bulk downloader for torrents*. And it was intended to make my first steps in the 
+    golang world (which is still a *future work*). For now the core logic is written in shell script
+    and daemonized by *upstart*.
+
 
 
 ### Features
-+   opening up a VPN connection to IPredator
-+   watching for torrent files, downloading their content and share it with the host system
+
++   opens up a VPN connection to IPredator
++   watches for torrent files and magnets, downloading their content and share it with the 
+    host system
 
 
 ### Components
+
 +   [btfs](https://github.com/johang/btfs)
-+   [OpenVPN]()
-+   [ferm]()
-+   DNScrypt
++   [OpenVPN](https://openvpn.net/)
++   [ferm](http://ferm.foo-projects.org/) *(firewall)*
++   [DNScrypt](https://dnscrypt.org/)
 
 
 ### Dependencies
+
 +   vagrant
 +   virtualbox
-+   ubuntu box
++   valid IPredator account
++   Ubuntu 14.04
+
+
+### Installation
+
+1.  clone the repo
+2.  add the file `./conf/IPredator.auth` containing
+
+```
+USERNAME
+PASSWORD
+```
+
+3.  adjust desired configurations
+4.  run `vagrant up` from within `./vm`
+
+
+### Howto use
+
+Just put `.torrent` files into the share folder (or folders with such files) or past magnet links
+into the corresponding file `./share/magnet-links` ... and wait.
 
 
 ### Worth noticing
+
++   after the provisioning has finished, the vm will be shutdown, just ot make sure everything 
+    comes up as expected after the installation. So in order to use this whole thing, one has to
+    get the machine up and running again
 +   the provisioning is heavily based on [IPredator HOWTOs](https://blog.ipredator.se/howto.html)
++   [vagrant documentation](https://www.vagrantup.com/docs/) and [CLI](https://www.vagrantup.com/docs/cli/)
 
 
 ### Future Works
+
 +   remove the hard-coded IPredator support, to enable other VPN providers
 +   support magnet links (not only torrent files)
 +   check for version of files loaded from IPredator
++   write the core logic in *golang*
+
+
+### Known issues
+
++   from time to time the provisioning might be broken, depending on the mood of the ubuntu 
+    package servers. My guess, it's the vagrant box or because we are using an older of *ubuntu*.
+    So there is room for improvements ;)
