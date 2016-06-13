@@ -40,22 +40,23 @@ btfs dl vm
 1.  clone the repo
 2.  add the file `./conf/IPredator.auth` containing
 
-```
-USERNAME
-PASSWORD
-```
+
+        USERNAME
+        PASSWORD
+
 
 3.  adjust desired configurations
 4.  run `vagrant up` from within `./vm`
+5.  wait until the provisioning has finished and spin up the vm again
 
 
 ### Howto use
 
-Just put `.torrent` files into the share folder (or folders with such files) or past magnet links
+Just put `.torrent` files into the shared folder (or folders with such files) or past magnet links
 into the corresponding file `./share/magnet-links` ... and wait.
 
 
-### Worth noticing
+### Worth knowing
 
 +   after the provisioning has finished, the vm will be shutdown, just ot make sure everything 
     comes up as expected after the installation. So in order to use this whole thing, one has to
@@ -70,10 +71,12 @@ into the corresponding file `./share/magnet-links` ... and wait.
 +   support magnet links (not only torrent files)
 +   check for version of files loaded from IPredator
 +   write the core logic in *golang*
++   eventually moving from ubuntu to debian
 
 
 ### Known issues
 
 +   from time to time the provisioning might be broken, depending on the mood of the ubuntu 
-    package servers. My guess, it's the vagrant box or because we are using an older of *ubuntu*.
+    package servers. My guess, it's the vagrant box or because an older version of *ubuntu* 
+    is used (and that's because 16.04 is still not working well will virtualbox 5.x).
     So there is room for improvements ;)
