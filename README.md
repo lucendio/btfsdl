@@ -73,13 +73,13 @@ magnet links into the corresponding file `./share/magnet-links` ... and wait.
 ### Future Works
 
 + [x]   switching form *upstart* to *systemd*
-+ []    remove the hard-coded IPredator support, to enable other VPN providers
-+ []    support magnet links (not only torrent files)
-+ []    check for version of files loaded from IPredator
-+ []    write the core logic in *golang*
-+ []    eventually moving from ubuntu to debian
-+ []    containerize this whole thing (e.g. w/ rkt, coreos)
-+ []    move the firewall switch (`fermreload.sh`) to a systemd unit/service
++ [ ]   remove the hard-coded IPredator support, to enable other VPN providers
++ [ ]   support magnet links (not only torrent files)
++ [ ]   check for version of files loaded from IPredator
++ [ ]   write the core logic in *golang*
++ [ ]   eventually moving from ubuntu to debian
++ [ ]   containerize this whole thing (e.g. w/ rkt, coreos)
++ [ ]   move the firewall switch (`fermreload.sh`) to a systemd unit/service
 
 
 
