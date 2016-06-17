@@ -8,6 +8,10 @@ tty -s && mesg n
 #set -x # Print commands and their arguments as they are executed.
 
 
+#if [ "$(uname)" != "root" ]; then
+#    sudo su
+#fi
+
 ### FIXES ###
 #export LC_ALL="en_US.UTF-8"
 #locale-gen en_US.UTF-8
@@ -29,8 +33,7 @@ echo "" >> ./.profile
 ### INFORMATION
 ####################################################################
 
-# + configure openvpn startup behaviour: /etc/default/openvpn
-# + default: all placed *.conf in /etc/openvpn will be used on startup
+# + default: all *.conf files placed in /etc/openvpn will be used on startup
 # + check status: $ curl https://check.ipredator.se/
 # + HOWTOs: https://blog.ipredator.se/howto.html
 
@@ -58,9 +61,14 @@ OPENVPN_PATH=/etc/openvpn
 FERM_PATH=/etc/ferm
 SYSCTL_CONF_PATH_FILE=/etc/sysctl.conf
 ULOGD_CONF_PATH_FILE=/etc/ulogd.conf
+DNSCRYPT_SERVICE_FILE=dnscrypt-proxy.service
 DNSCRYPT_CONF_PATH_FILE=/etc/default/dnscrypt-proxy
 DHCPCLIENT_CONF_PATH_FILE=/etc/dhcp/dhclient.conf
-BTFSDK_ROOT=${1:-/home/vagrant/btfsdl}
+
+SYSTEMD_UNITS_PATH=/etc/systemd/system
+
+BTFSDL_ROOT=${1:-/home/vagrant/btfsdl}
+BTFSDL_SERVICE_FILE=btfsdl.service
 
 USERNAME=${2:-root}
 
@@ -69,45 +77,45 @@ USERNAME=${2:-root}
 ####################################################################
 ### INSTALL ENVIRONMENT
 ####################################################################
-# speed up apt-get update (src: https://www.leggiero.uk/post/speed-up-apt-get-update-with-parallel/)
-echo 'APT::Acquire::Queue-Mode "access";' > /etc/apt/apt.conf.d/99parallel
-echo 'APT::Acquire::Retries 3;' > /etc/apt/apt.conf.d/99parallel
-echo "" > /etc/apt/apt.conf.d/99parallel
-
-echo 'Acquire::Languages "none";' >> /etc/apt/apt.conf.d/00aptitude
-echo "" >> /etc/apt/apt.conf.d/00aptitude
+# NOTE: sleeping/pauses tend to make the apt-get installations
+# running more stable. (Why? The hell I know! My guess, some async,
+# child process or background stuff going on.)
 
 apt-get update -y
-apt-get -y --force-yes install curl openvpn easy-rsa network-manager
 
+# making `add-apt-repository` available again
+apt-get -y install software-properties-common
+sleep 5
 
-add-apt-repository -y ppa:johang/btfs
-apt-get update -y
-apt-get -y install btfs
-
+apt-get -y install curl openvpn easy-rsa
+sleep 5
 
 echo "ferm ferm/enable boolean false" | debconf-set-selections
-apt-get -y --force-yes install ferm ulogd2 ulogd2-pcap
+apt-get -y install ferm ulogd2 ulogd2-pcap
 
 
 add-apt-repository -y ppa:anton+/dnscrypt
 apt-get update -y
-apt-get -y --force-yes install dnscrypt-proxy
+apt-get -y install dnscrypt-proxy
+sleep 5
 
-
+add-apt-repository -y ppa:johang/btfs
+apt-get update -y
+apt-get -y install btfs
+sleep 5
 
 ####################################################################
 ### CONFIGURE ENVIRONMENT
 ####################################################################
-mkdir -p ${BTFSDK_ROOT}
-chown ${USERNAME}:${USERNAME} ${BTFSDK_ROOT}
+mkdir -p ${BTFSDL_ROOT}
+chown ${USERNAME}:${USERNAME} ${BTFSDL_ROOT}
 
 
 ### OPENVPN ###
 curl -o ${IPREDATOR_OPENVPN_CONFIG_FILE} ${IPREDATOR_OPENVPN_CONFIG_URL}
 
 # supporting older version of openvpn
-sed -e '/^tls-version-min 1.2/s/^#*/#/' -i ./${IPREDATOR_OPENVPN_CONFIG_FILE}
+#sed -e '/^tls-version-min 1.2/s/^#*/#/' -i ./${IPREDATOR_OPENVPN_CONFIG_FILE}
 
 echo "script-security 2" >> ./${IPREDATOR_OPENVPN_CONFIG_FILE}
 echo "up /etc/openvpn/update-resolv-conf" >> ./${IPREDATOR_OPENVPN_CONFIG_FILE}
@@ -115,7 +123,7 @@ echo "down /etc/openvpn/update-resolv-conf" >> ./${IPREDATOR_OPENVPN_CONFIG_FILE
 echo "" >> ./${IPREDATOR_OPENVPN_CONFIG_FILE}
 
 cp ./${IPREDATOR_OPENVPN_CONFIG_FILE} ${OPENVPN_PATH}/
-cp ${BTFSDK_ROOT}/conf/${IPREDATOR_OPENVPN_CREDENTIALS} ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}
+cp ${BTFSDL_ROOT}/conf/${IPREDATOR_OPENVPN_CREDENTIALS} ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}
 
 chown ${OPENVPN_USERNAME}:${OPENVPN_USERNAME} ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CONFIG_FILE}
 chown ${OPENVPN_USERNAME}:${OPENVPN_USERNAME} ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}
@@ -131,25 +139,26 @@ echo "sudo iptables -nL -v" >> ${CWD}/.profile
 ### FIREWALL ### (src: https://blog.ipredator.se/linux-firewall-howto.html)
 curl -o ${IPREDATOR_FIREWALL_FERM_CONFIG_FILE} ${IPREDATOR_FIREWALL_FERM_CONFIG_URL}
 
-. ${BTFSDK_ROOT}/conf/params
+. ${BTFSDL_ROOT}/conf/params
 
 # enabling torrents (src: https://blog.ipredator.se/howto/restricting-transmission-to-the-vpn-interface-on-ubuntu-linux.html)
-sed -e '/^\@def $PORT_WEB/a \
+sed -i \
+    -e '/^@def $PORT_DNS = 53;/c\@def $PORT_DNS = ( 53 443 );' \
+    -e 's/eth0/enp0s3/g' \
+    -e '/^\@def $PORT_WEB/a \
+@def $PORTS_TRACKER = ( '"${PORTS_TRACKER}"'); \
 \
-#Ports btfs is allowed to use.\
-\@def $PORT_BTFS = '"(${PORT_MIN}:${PORT_MAX} ${PORT_BTFS})"';' -i ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
-
-sed -e '0,/chain OUTPUT {/s/chain OUTPUT {/chain INPUT {\
+# Ports btfs is allowed to use.\
+\@def $PORT_BTFS = '"(${PORT_MIN}:${PORT_MAX} ${PORT_BTFS})"';' \
+    -e '0,/chain OUTPUT {/s/chain OUTPUT {/chain INPUT {\
                interface $DEV_VPN {\
                     proto (tcp udp) dport $PORT_BTFS ACCEPT;\
                 }\
-            }\n            &/' -i ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
-
-sed -e '/proto (tcp udp) daddr ( $IP_DNS_VPN $IP_DNS_IPR_PUBLIC ) dport $PORT_DNS ACCEPT;/ a\
-                    proto (tcp udp) dport $PORT_BTFS ACCEPT;' -i ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
-
-sed -e '/proto (tcp udp) daddr $IP_DNS_PUBLIC dport $PORT_DNS ACCEPT;/ a\
-                proto (tcp udp) daddr $IP_DNS_PUBLIC dport 443 ACCEPT;' -i ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
+            }\n            &/' \
+    -e '/proto (tcp udp) daddr ( $IP_DNS_VPN $IP_DNS_IPR_PUBLIC ) dport $PORT_DNS ACCEPT;/ a\
+                    proto (tcp udp) dport $PORT_BTFS ACCEPT;' \
+    -e '/proto tcp dport $PORT_WEB ACCEPT;/ a\
+                    proto udp dport $PORTS_TRACKER ACCEPT;' ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
 
 mv ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE} ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}.default
 cp ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE} ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
@@ -169,10 +178,12 @@ chmod 555 /usr/local/bin/${IPREDATOR_FIREWALL_FERM_SCRIPT_FILE}
 #/etc/init.d/udev reload
 
 # logging_dropped_packages
-sed -i '/^#plugin=.*ulogd_output_PCAP.so/s/^#//' ${ULOGD_CONF_PATH_FILE} 
-sed -i '/^#stack=log2:NFLOG,base1:BASE,pcap1:PCAP/s/^#//' ${ULOGD_CONF_PATH_FILE}
-sed -e '/^file="\/var\/log\/ulog\/syslogemu.log"/s/^#*/#/' -i ${ULOGD_CONF_PATH_FILE}
-sed -e '/^#file="\/var\/log\/ulog\/syslogemu.log"/a file="\/dev\/null"' -i ${ULOGD_CONF_PATH_FILE}
+sed -i \
+    -e '/^#plugin=.*ulogd_output_PCAP.so/s/^#//' \
+    -e '/^#stack=log2:NFLOG,base1:BASE,pcap1:PCAP/s/^#//' \
+    -e '/^file="\/var\/log\/ulog\/syslogemu.log"/s/^#*/#/' \
+    -e '/^#file="\/var\/log\/ulog\/syslogemu.log"/a file="\/dev\/null"' ${ULOGD_CONF_PATH_FILE}
+
 #/etc/init.d/ulogd2 restart
 
 
@@ -188,36 +199,25 @@ echo "net.netfilter.nf_conntrack_max = 1048576" >> ${SYSCTL_CONF_PATH_FILE}
 
 
 
-### DNS ### (src: https://blog.ipredator.se/ubuntu-dnscrypt-howto.html)
-echo "" >> ${DNSCRYPT_CONF_PATH_FILE}
-echo "# Ipredator dnscrypt conf" >> ${DNSCRYPT_CONF_PATH_FILE}
-echo "resolver-address=194.132.32.32" >> ${DNSCRYPT_CONF_PATH_FILE}
-echo "provider-name=2.dnscrypt-cert.ipredator.se" >> ${DNSCRYPT_CONF_PATH_FILE}
-echo "provider-key=C44C:566A:A8D6:46C4:32B1:04F5:3D00:961B:32DC:71CF:1C04:BD9E:B013:E480:E7A4:7828" >> ${DNSCRYPT_CONF_PATH_FILE}
-echo "" >> ${DNSCRYPT_CONF_PATH_FILE}
-
-echo "" >> ${DHCPCLIENT_CONF_PATH_FILE}
-echo "supersede domain-name-servers 127.0.0.2;" >> ${DHCPCLIENT_CONF_PATH_FILE}
-echo "" >> ${DHCPCLIENT_CONF_PATH_FILE}
-
-#/etc/init.d/networking restart
-
-# just checking if anything works as expected
-#dig ipredator.se @127.0.0.2
-#nm-tool
-
+### DNS ###
+cp ${BTFSDL_ROOT}/lib/${DNSCRYPT_SERVICE_FILE} ${SYSTEMD_UNITS_PATH}/${DNSCRYPT_SERVICE_FILE}
+chown root:root ${SYSTEMD_UNITS_PATH}/${DNSCRYPT_SERVICE_FILE}
+systemctl daemon-reload
 
 
 
 id -u ${USERNAME} &>/dev/null || adduser ${USERNAME} --shell /bin/bash --disabled-password --disabled-login --gecos ""
 
-cp ${BTFSDK_ROOT}/lib/btfsdl-watcher.upstart /etc/init/btfsdl-watcher.conf
+
+cp ${BTFSDL_ROOT}/lib/${BTFSDL_SERVICE_FILE} ${SYSTEMD_UNITS_PATH}/${BTFSDL_SERVICE_FILE}
+chown root:root ${SYSTEMD_UNITS_PATH}/${BTFSDL_SERVICE_FILE}
+systemctl enable ${BTFSDL_SERVICE_FILE}
 
 
 
 
 ####################################################################
-### POST PROCESS
+### POST PROVISION
 ####################################################################
 
 sudo poweroff && exit 0;

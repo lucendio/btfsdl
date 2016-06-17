@@ -1,9 +1,21 @@
+################################################################################
+# btfsdl parameters
+# =================
+#
+# consumed by: btfs, ferm
+
+
+
 PORT_MIN=16384
 PORT_MAX=65535
 PORT_BTFS=6881
+PORTS_TRACKER="80 6969 1337"
+
 
 # KBytes per second
 # SRC: http://www.libtorrent.org/manual-ref.html
+# NOTE: currently not used
+
 UPLOAD_MAX_RATE=0
 DOWNLOAD_MAX_RATE=
 

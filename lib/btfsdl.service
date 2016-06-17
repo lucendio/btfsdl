@@ -1,0 +1,30 @@
+################################################################################
+# btfsdl-watcher
+# ==============
+#
+# a daemon for watching incoming torrents and magnets
+
+
+
+[Unit]
+Description=btfsdl-watcher
+Wants=sys-devices-virtual-net-tun0.device
+After=sys-devices-virtual-net-tun0.device
+
+
+
+[Service]
+Type=simple
+
+WorkingDirectory=/usr/local/btfsdl
+User=vagrant
+Group=vagrant
+
+ExecStart=/bin/sh ./lib/btfsdl.sh
+
+Restart=on-failure
+
+
+
+[Install]
+WantedBy=multi-user.target

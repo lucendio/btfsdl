@@ -1,0 +1,27 @@
+[Unit]
+Description=DNSCrypt proxy
+Documentation=man:dnscrypt-proxy(8)
+After=network.target iptables.service firewalld.service
+Requires=dnscrypt-proxy.socket
+
+
+
+[Service]
+Type=notify
+NonBlocking=true
+User=_dnscrypt-proxy
+EnvironmentFile=/usr/local/btfsdl/conf/resolver
+ExecStart=/usr/sbin/dnscrypt-proxy \
+        --provider-name=${PROVIDER_NAME} \
+        --resolver-address=${RESOLVER_ADDRESS} \
+        --provider-key=${PROVIDER_KEY}
+Restart=always
+
+# NOTE: EnvironmentFile gets mounted via synced folders
+RestartSec=10
+
+
+
+[Install]
+WantedBy=multi-user.target
+Also=dnscrypt-proxy.socket

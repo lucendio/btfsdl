@@ -1,0 +1,14 @@
+################################################################################
+# dns resolvers
+# =============
+#
+# consumed by: dnscrypt-proxy.service
+
+
+
+# src: https://www.ipredator.se/page/services#service_dns
+# NOTE: if it'snot working, have look and update the following params
+
+PROVIDER_NAME=2.dnscrypt-cert.ipredator.se
+RESOLVER_ADDRESS=194.132.32.32
+PROVIDER_KEY=C44C:566A:A8D6:46C4:32B1:04F5:3D00:961B:32DC:71CF:1C04:BD9E:B013:E480:E7A4:7828

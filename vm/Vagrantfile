@@ -26,9 +26,12 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
 
-    config.vm.box = "ubuntu/trusty64"           # --> will be downloaded from vagrantcloud
+    config.vm.box = "bento/ubuntu-16.04"        # --> will be downloaded from vagrantcloud
                                                 # --> TODO: choose your own vagrant base box
-                                                # e.g.: ubuntu/xenial64 ubuntu/trusty64 bento/ubuntu-16.04
+                                                # e.g.: ubuntu/xenial64
+                                                #       ubuntu/trusty64
+                                                #       bento/ubuntu-16.04
+                                                #       geerlingguy/ubuntu1604
     config.vm.box_check_update = true           # --> default: true
     config.vm.communicator = "ssh"              # --> default: "ssh"
 
