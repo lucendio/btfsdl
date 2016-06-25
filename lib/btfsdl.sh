@@ -60,7 +60,9 @@ btfsdl(){
         --max-port=${PORT_MAX} \
         ${torrent} \
         ${BTFSDL_MOUNT_POINT}
+    ls ${BTFSDL_MOUNT_POINT} > /dev/null 2>&1
     sleep 10
+    ls ${BTFSDL_MOUNT_POINT} > /dev/null 2>&1
     cp -a ${BTFSDL_MOUNT_POINT}/. ${targetPath}/
     fusermount -u ${BTFSDL_MOUNT_POINT}
 }
