@@ -10,14 +10,13 @@ Requires=dnscrypt-proxy.socket
 Type=notify
 NonBlocking=true
 User=_dnscrypt-proxy
-EnvironmentFile=/usr/local/btfsdl/conf/resolver
+EnvironmentFile=/var/opt/btfsdl/resolver
 ExecStart=/usr/sbin/dnscrypt-proxy \
         --provider-name=${PROVIDER_NAME} \
         --resolver-address=${RESOLVER_ADDRESS} \
         --provider-key=${PROVIDER_KEY}
 Restart=always
 
-# NOTE: EnvironmentFile gets mounted via synced folders
 RestartSec=10
 
 

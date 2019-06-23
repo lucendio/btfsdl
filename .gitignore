@@ -1,6 +1,6 @@
 .idea
 .vagrant
-./vm/*.log
+provision/*.log
 conf/IPredator.auth
 
 ./share/*

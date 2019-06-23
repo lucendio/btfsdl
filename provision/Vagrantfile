@@ -1,0 +1,89 @@
+############################################################
+#### Version: 0.0.1
+#### Author: dev@lucendio.com
+#### Type: btfs downloader
+#### Provider: virtualbox
+#### Provisioning: shell script
+############################################################
+
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = "2"
+VAGRANT_PROJECT_ID = "btfsdl-vm"
+MOUNT_PATH = "/mnt/host"
+REMOTE_SOURCE_PATH_LINUX = "/tmp/provision"
+PROVISION_ROOT_PATH = "./provision"
+COMMON_PROVISION_SCRIPTS_LINUX = []
+
+
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+
+    config.vm.define VAGRANT_PROJECT_ID do |node|
+
+        instance_ip = "10.1.2.2"
+        hostname = "btfsdl-vm.local"
+        username = "vagrant"
+
+        provision_scripts = Array.new(COMMON_PROVISION_SCRIPTS_LINUX).push(
+            "bootstrap_btfsdl_ubuntu.sh #{MOUNT_PATH}",
+        )
+
+        asset_files = [
+            "./../conf/IPredator.auth",
+            "./../conf/params",
+            "./../conf/resolver",
+            "./../lib/dnscrypt-proxy.service",
+            "./../lib/btfsdl.sh",
+            "./../lib/btfsdl.service",
+        ]
+
+
+        node.vm.post_up_message = "Welcome to the btfs bulk downloader vm!"
+
+        node.vm.box = "bento/ubuntu-16.04"
+        node.vm.box_check_update = true
+
+        # NOTE: source - http://docs.vagrantup.com/v2/vagrantfile/ssh_settings.html
+        node.vm.communicator = "ssh"
+        node.ssh.username = username
+        #node.ssh.password = "vagrant"
+        node.ssh.forward_agent = false
+        node.ssh.insert_key = false               # --> true: disables key auth with vagrants own insecure key
+
+        # provider configs
+        node.vm.provider "virtualbox" do |v|
+            v.gui = false
+            v.name = VAGRANT_PROJECT_ID
+            v.memory = 1024
+            v.cpus = 1
+        end
+
+        node.vm.hostname = hostname
+        node.vm.network "private_network", ip: instance_ip
+
+        node.vm.synced_folder "./", "/vagrant", disabled: true
+        node.vm.synced_folder "./share", "/var/opt/btfsdl/share", type: "virtualbox"
+
+
+        provision_scripts.each do |script|
+            filename = script.split(' ').first
+            node.vm.provision "file", source: "#{PROVISION_ROOT_PATH}/#{filename}", destination: "#{REMOTE_SOURCE_PATH_LINUX}/#{filename}"
+        end
+
+        asset_files.each do |rel_file_path|
+            filename = File.basename( rel_file_path )
+            node.vm.provision "file", source: "#{PROVISION_ROOT_PATH}/#{rel_file_path}", destination: "#{REMOTE_SOURCE_PATH_LINUX}/#{filename}"
+        end
+
+        provision_scripts.each do |script|
+            node.vm.provision "shell",
+                              inline: "#{REMOTE_SOURCE_PATH_LINUX}/#{script}",
+                              privileged: true
+        end
+    end
+
+
+end

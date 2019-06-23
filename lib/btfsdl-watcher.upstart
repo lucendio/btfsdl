@@ -12,7 +12,7 @@ respawn limit 10 5
 
 
 env DAEMON_NAME=btfsdl-watcher
-env DAEMON=/usr/local/btfsdl/lib/btfsdl.sh
+env DAEMON=/opt/btfsdl/main.sh
 env DAEMON_USER=vagrant
 
 

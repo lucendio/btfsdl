@@ -1,4 +1,4 @@
-#!/usr/bin/env /bin/sh
+#!/usr/bin/env bash
 
 # NOTE: fix for issue https://github.com/mitchellh/vagrant/issues/1673
 sed -i 's/^mesg n$/tty -s \&\& mesg n/g' /root/.profile
@@ -12,7 +12,7 @@ tty -s && mesg n
 #    sudo su
 #fi
 
-### FIXES ###
+### LANGUAGE ###
 #export LC_ALL="en_US.UTF-8"
 #locale-gen en_US.UTF-8
 #dpkg-reconfigure locales
@@ -20,12 +20,9 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
 
-cd /home/vagrant
-CWD=$(pwd)
-echo "" >> ./.profile
-echo "export LC_ALL=en_US.UTF-8" >> ./.profile
-echo "export LANG=en_US.UTF-8" >> ./.profile
-echo "" >> ./.profile
+
+CWD=$( pwd )
+DIR="$( cd "$(dirname "$0")" ; pwd -P )"
 
 
 
@@ -44,34 +41,52 @@ echo "" >> ./.profile
 ####################################################################
 # NOTE: other configs for e.g. NAT or IPv6 can be found here:
 # https://beta.ipredator.se/guide/openvpn/settings#openvpn_config_file
-IPREDATOR_OPENVPN_CONFIG_URL=https://beta.ipredator.se/static/downloads/openvpn/cli/IPredator-CLI-Password.conf
-IPREDATOR_OPENVPN_CONFIG_FILE=ipredator.conf
-IPREDATOR_OPENVPN_CREDENTIALS=IPredator.auth
+IPREDATOR_OPENVPN_CONFIG_URL="https://ipredator.se/static/downloads/openvpn/cli/IPredator-CLI-Password.conf"
+IPREDATOR_OPENVPN_CONFIG_FILE="ipredator.conf"
+IPREDATOR_OPENVPN_CREDENTIALS="IPredator.auth"
 
-IPREDATOR_FIREWALL_FERM_CONFIG_URL=https://www.ipredator.se/static/downloads/howto/linux_firewall/ferm.conf
-IPREDATOR_FIREWALL_FERM_CONFIG_FILE=ferm.conf
-IPREDATOR_FIREWALL_FERM_SCRIPT_URL=https://www.ipredator.se/static/downloads/howto/linux_firewall/fermreload.sh
-IPREDATOR_FIREWALL_FERM_SCRIPT_FILE=fermreload.sh
-IPREDATOR_FIREWALL_FERM_RULES_URL=https://www.ipredator.se/static/downloads/howto/linux_firewall/81-vpn-firewall.rules
-IPREDATOR_FIREWALL_FERM_RULES_FILE=81-vpn-firewall.rules
+IPREDATOR_FIREWALL_FERM_CONFIG_URL="https://ipredator.se/static/downloads/howto/linux_firewall/ferm.conf"
+IPREDATOR_FIREWALL_FERM_CONFIG_FILE="ferm.conf"
+IPREDATOR_FIREWALL_FERM_SCRIPT_URL="https://ipredator.se/static/downloads/howto/linux_firewall/fermreload.sh"
+IPREDATOR_FIREWALL_FERM_SCRIPT_FILE="fermreload.sh"
+IPREDATOR_FIREWALL_FERM_RULES_URL="https://ipredator.se/static/downloads/howto/linux_firewall/81-vpn-firewall.rules"
+IPREDATOR_FIREWALL_FERM_RULES_FILE="81-vpn-firewall.rules"
 
 
-OPENVPN_USERNAME=root
-OPENVPN_PATH=/etc/openvpn
-FERM_PATH=/etc/ferm
-SYSCTL_CONF_PATH_FILE=/etc/sysctl.conf
-ULOGD_CONF_PATH_FILE=/etc/ulogd.conf
-DNSCRYPT_SERVICE_FILE=dnscrypt-proxy.service
-DNSCRYPT_CONF_PATH_FILE=/etc/default/dnscrypt-proxy
-DHCPCLIENT_CONF_PATH_FILE=/etc/dhcp/dhclient.conf
+OPENVPN_USERNAME="root"
+OPENVPN_PATH="/etc/openvpn"
+FERM_PATH="/etc/ferm"
+SYSCTL_CONF_PATH_FILE="/etc/sysctl.conf"
+ULOGD_CONF_PATH_FILE="/etc/ulogd.conf"
+DNSCRYPT_SERVICE_FILE="dnscrypt-proxy.service"
+DNSCRYPT_CONF_PATH_FILE="/etc/default/dnscrypt-proxy"
+DHCPCLIENT_CONF_PATH_FILE="/etc/dhcp/dhclient.conf"
 
-SYSTEMD_UNITS_PATH=/etc/systemd/system
+SYSTEMD_UNITS_PATH="/etc/systemd/system"
 
-BTFSDL_ROOT=${1:-/home/vagrant/btfsdl}
-BTFSDL_SERVICE_FILE=btfsdl.service
+INSTALL_PATH="/opt/btfsdl"
+INSTALL_DATA_PATH="/var/opt/btfsdl"
+USER_NAME="vagrant"
+BTFSDL_SERVICE_FILE="btfsdl.service"
 
-USERNAME=${2:-root}
 
+
+cd "${DIR}"
+
+
+# NOTE: if provision already ran, just update btfsdl configuration files
+if [ -f "${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}" ]; then
+
+    systemctl stop "${BTFSDL_SERVICE_FILE}" && \
+        systemctl stop "${DNSCRYPT_SERVICE_FILE}" && \
+        systemctl stop openvpn
+
+    cat ./${IPREDATOR_OPENVPN_CREDENTIALS} > ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}
+    cat ./resolver > ${INSTALL_DATA_PATH}/resolver
+    cat ./params > ${INSTALL_DATA_PATH}/params
+
+    reboot && exit 0;
+fi
 
 
 ####################################################################
@@ -80,6 +95,15 @@ USERNAME=${2:-root}
 # NOTE: sleeping/pauses tend to make the apt-get installations
 # running more stable. (Why? The hell I know! My guess, some async,
 # child process or background stuff going on.)
+
+
+
+echo "" >> "/home/${USER_NAME}/.profile"
+echo "export LC_ALL=en_US.UTF-8" >> "/home/${USER_NAME}/.profile"
+echo "export LANG=en_US.UTF-8" >> "/home/${USER_NAME}/.profile"
+echo "" >> "/home/${USER_NAME}/.profile"
+
+
 
 apt-get update -y
 
@@ -104,49 +128,55 @@ apt-get update -y
 apt-get -y install btfs
 sleep 5
 
+
+
 ####################################################################
 ### CONFIGURE ENVIRONMENT
 ####################################################################
-mkdir -p ${BTFSDL_ROOT}
-chown ${USERNAME}:${USERNAME} ${BTFSDL_ROOT}
+mkdir -p ${INSTALL_PATH} && chown ${USER_NAME}:${USER_NAME} ${INSTALL_PATH}
+mkdir -p ${INSTALL_DATA_PATH} && chown ${USER_NAME}:${USER_NAME} ${INSTALL_DATA_PATH}
 
 
 ### OPENVPN ###
-curl -o ${IPREDATOR_OPENVPN_CONFIG_FILE} ${IPREDATOR_OPENVPN_CONFIG_URL}
+curl --output "./${IPREDATOR_OPENVPN_CONFIG_FILE}" \
+     --silent \
+     "${IPREDATOR_OPENVPN_CONFIG_URL}"
 
 # supporting older version of openvpn
-#sed -e '/^tls-version-min 1.2/s/^#*/#/' -i ./${IPREDATOR_OPENVPN_CONFIG_FILE}
+#sed -e '/^tls-version-min 1.2/s/^#*/#/' -i "./${IPREDATOR_OPENVPN_CONFIG_FILE}"
 
-echo "script-security 2" >> ./${IPREDATOR_OPENVPN_CONFIG_FILE}
-echo "up /etc/openvpn/update-resolv-conf" >> ./${IPREDATOR_OPENVPN_CONFIG_FILE}
-echo "down /etc/openvpn/update-resolv-conf" >> ./${IPREDATOR_OPENVPN_CONFIG_FILE}
-echo "" >> ./${IPREDATOR_OPENVPN_CONFIG_FILE}
+echo "script-security 2" >> "./${IPREDATOR_OPENVPN_CONFIG_FILE}"
+echo "up /etc/openvpn/update-resolv-conf" >> "./${IPREDATOR_OPENVPN_CONFIG_FILE}"
+echo "down /etc/openvpn/update-resolv-conf" >> "./${IPREDATOR_OPENVPN_CONFIG_FILE}"
+echo "" >> "./${IPREDATOR_OPENVPN_CONFIG_FILE}"
 
-cp ./${IPREDATOR_OPENVPN_CONFIG_FILE} ${OPENVPN_PATH}/
-cp ${BTFSDL_ROOT}/conf/${IPREDATOR_OPENVPN_CREDENTIALS} ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}
+mv "./${IPREDATOR_OPENVPN_CONFIG_FILE}" "${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CONFIG_FILE}"
+cp "./${IPREDATOR_OPENVPN_CREDENTIALS}" "${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}"
 
 chown ${OPENVPN_USERNAME}:${OPENVPN_USERNAME} ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CONFIG_FILE}
 chown ${OPENVPN_USERNAME}:${OPENVPN_USERNAME} ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}
 chmod 400 ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CONFIG_FILE}
 chmod 400 ${OPENVPN_PATH}/${IPREDATOR_OPENVPN_CREDENTIALS}
 
-echo "ifconfig tun0" >> ${CWD}/.profile
-echo "ip route show" >> ${CWD}/.profile
-echo "sudo iptables -nL -v" >> ${CWD}/.profile
+echo "ifconfig tun0" >> "/home/${USER_NAME}/.profile"
+echo "ip route show" >> "/home/${USER_NAME}/.profile"
+echo "sudo iptables -nL -v" >> "/home/${USER_NAME}/.profile"
 
 
 
 ### FIREWALL ### (src: https://blog.ipredator.se/linux-firewall-howto.html)
-curl -o ${IPREDATOR_FIREWALL_FERM_CONFIG_FILE} ${IPREDATOR_FIREWALL_FERM_CONFIG_URL}
+curl --output "./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}" \
+     --silent \
+     "${IPREDATOR_FIREWALL_FERM_CONFIG_URL}"
 
-. ${BTFSDL_ROOT}/conf/params
+mv ./params "${INSTALL_DATA_PATH}/params"
+. "${INSTALL_DATA_PATH}/params"
 
 # enabling torrents (src: https://blog.ipredator.se/howto/restricting-transmission-to-the-vpn-interface-on-ubuntu-linux.html)
 sed -i \
     -e '/^@def $PORT_DNS = 53;/c\@def $PORT_DNS = ( 53 443 );' \
-    -e 's/eth0/enp0s3/g' \
     -e '/^\@def $PORT_WEB/a \
-@def $PORTS_TRACKER = ( '"${PORTS_TRACKER}"'); \
+@def $PORTS_TRACKER = ( '"${PORTS_TRACKER}"' ); \
 \
 # Ports btfs is allowed to use.\
 \@def $PORT_BTFS = '"(${PORT_MIN}:${PORT_MAX} ${PORT_BTFS})"';' \
@@ -161,19 +191,23 @@ sed -i \
                     proto udp dport $PORTS_TRACKER ACCEPT;' ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
 
 mv ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE} ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}.default
-cp ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE} ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
+mv ./${IPREDATOR_FIREWALL_FERM_CONFIG_FILE} ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
 chmod 644 ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
 chown root:adm ${FERM_PATH}/${IPREDATOR_FIREWALL_FERM_CONFIG_FILE}
 
 sed -i '/ENABLED="no"/ c\ENABLED="yes"' /etc/default/ferm
 
-curl -o ${IPREDATOR_FIREWALL_FERM_RULES_FILE} ${IPREDATOR_FIREWALL_FERM_RULES_URL}
-cp ./${IPREDATOR_FIREWALL_FERM_RULES_FILE} /etc/udev/rules.d/${IPREDATOR_FIREWALL_FERM_RULES_FILE}
+curl --output "./${IPREDATOR_FIREWALL_FERM_RULES_FILE}" \
+     --silent \
+     "${IPREDATOR_FIREWALL_FERM_RULES_URL}"
+mv ./${IPREDATOR_FIREWALL_FERM_RULES_FILE} /etc/udev/rules.d/${IPREDATOR_FIREWALL_FERM_RULES_FILE}
 chmod 644 /etc/udev/rules.d/${IPREDATOR_FIREWALL_FERM_RULES_FILE}
 chown root:root /etc/udev/rules.d/${IPREDATOR_FIREWALL_FERM_RULES_FILE}
 
-curl -o ${IPREDATOR_FIREWALL_FERM_SCRIPT_FILE} ${IPREDATOR_FIREWALL_FERM_SCRIPT_URL}
-cp ./${IPREDATOR_FIREWALL_FERM_SCRIPT_FILE} /usr/local/bin/${IPREDATOR_FIREWALL_FERM_SCRIPT_FILE}
+curl --output "./${IPREDATOR_FIREWALL_FERM_SCRIPT_FILE}" \
+     --silent \
+     "${IPREDATOR_FIREWALL_FERM_SCRIPT_URL}"
+mv ./${IPREDATOR_FIREWALL_FERM_SCRIPT_FILE} /usr/local/bin/${IPREDATOR_FIREWALL_FERM_SCRIPT_FILE}
 chmod 555 /usr/local/bin/${IPREDATOR_FIREWALL_FERM_SCRIPT_FILE}
 #/etc/init.d/udev reload
 
@@ -200,16 +234,19 @@ echo "net.netfilter.nf_conntrack_max = 1048576" >> ${SYSCTL_CONF_PATH_FILE}
 
 
 ### DNS ###
-cp ${BTFSDL_ROOT}/lib/${DNSCRYPT_SERVICE_FILE} ${SYSTEMD_UNITS_PATH}/${DNSCRYPT_SERVICE_FILE}
+mv ./${DNSCRYPT_SERVICE_FILE} ${SYSTEMD_UNITS_PATH}/${DNSCRYPT_SERVICE_FILE}
 chown root:root ${SYSTEMD_UNITS_PATH}/${DNSCRYPT_SERVICE_FILE}
 systemctl daemon-reload
 
 
 
-id -u ${USERNAME} &>/dev/null || adduser ${USERNAME} --shell /bin/bash --disabled-password --disabled-login --gecos ""
+id -u ${USER_NAME} &>/dev/null || adduser ${USER_NAME} --shell /bin/bash --disabled-password --disabled-login --gecos ""
 
 
-cp ${BTFSDL_ROOT}/lib/${BTFSDL_SERVICE_FILE} ${SYSTEMD_UNITS_PATH}/${BTFSDL_SERVICE_FILE}
+mv ./btfsdl.sh "${INSTALL_PATH}/main.sh"
+chown "${USER_NAME}:${USER_NAME}" "${INSTALL_PATH}/main.sh"
+
+mv ./${BTFSDL_SERVICE_FILE} ${SYSTEMD_UNITS_PATH}/${BTFSDL_SERVICE_FILE}
 chown root:root ${SYSTEMD_UNITS_PATH}/${BTFSDL_SERVICE_FILE}
 systemctl enable ${BTFSDL_SERVICE_FILE}
 
@@ -220,4 +257,4 @@ systemctl enable ${BTFSDL_SERVICE_FILE}
 ### POST PROVISION
 ####################################################################
 
-sudo poweroff && exit 0;
+poweroff && exit 0;

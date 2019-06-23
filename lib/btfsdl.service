@@ -16,11 +16,14 @@ After=sys-devices-virtual-net-tun0.device
 [Service]
 Type=simple
 
-WorkingDirectory=/usr/local/btfsdl
+WorkingDirectory=/var/opt/btfsdl
 User=vagrant
 Group=vagrant
 
-ExecStart=/bin/sh ./lib/btfsdl.sh
+EnvironmentFile=/var/opt/btfsdl/params
+
+ExecStart=exec -c '/bin/bash /opt/btfsdl/main.sh'
+ExecStopPost=exec -c 'rm -rf ~/btfs'
 
 Restart=on-failure
 
