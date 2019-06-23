@@ -70,15 +70,27 @@ magnet links into the corresponding file `./share/magnet-links` ... and wait.
 
 
 
+### Known issues
+
++   vagrant + ubuntu 16.04 aren't good friends quite yet. So the provisioning might fail
+    on first startup (you will notice errors during the boot process and by finishing of
+    unnaturally fast). A reboot before starting the provision might solve the problem.
+        
+        vagrant up --no-provision
+        vagrant halt
+        vagrant up --provision
+
+
+
 ### Future Works
 
 + [x]   switching form *upstart* to *systemd*
 + [ ]   remove the hard-coded IPredator support, to enable other VPN providers
-+ [ ]   support magnet links (not only torrent files)
++ [x]   support magnet links (not only torrent files)
 + [ ]   check for version of files loaded from IPredator
 + [ ]   write the core logic in *golang*
 + [ ]   eventually moving from ubuntu to debian
-+ [ ]   containerize this whole thing (e.g. w/ rkt, coreos)
++ [ ]   containerize this whole thing
 + [ ]   move the firewall switch (`fermreload.sh`) to a systemd unit/service
 
 
